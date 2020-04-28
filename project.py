@@ -6,70 +6,116 @@ app=Flask(__name__)
 
 @app.route('/')
 def index():
-	return render_template("file1.html")
+	
+	return render_template("file1.html",message='')
+
+def removedocker():
+	os.system("docker rm -f $(docker ps -aq)")
+
+def launchdocker():
+	os.system("docker container run -dit --name code3 compileros:1")
+
+def permission(filename):
+	strng="chmod 777 "+filename
+	os.system(strng)
+
+def writeintofile(filename,writethis):
+	abspath="/mydockerproject/"+filename
+	out=open(abspath,"w+")
+	out.write(writethis)
+	out.close()
+
+def copyfiletodocker(filename):	
+	strng="docker cp /mydockerproject/"+filename+" code3:/"
+	os.system(strng)
 
 @app.route('/profile1/' , methods=['post','get'])
 def profile1():
 	option=request.form["option"]
 	if option == "java":
-		code=request.form["ta"]
-		inpt=request.form["input"]
-		os.system("docker rm -f $(docker ps -aq)")
-		os.system("docker container run -dit --name code3 compileros:1")
-		out=open("/mydockerproject/main.java","w+")
-		os.system("chmod 777 main.java")
-		out.write(code)
-		out.close()
-		obj=open("/mydockerproject/input.txt","w+")
-		os.system("chmod 777 input.txt")
-		obj.write(inpt)
-		obj.close()
-		os.system("docker cp /mydockerproject/main.java code3:/")
-		os.system("docker cp /mydockerproject/input.txt code3:/")
-		os.system("docker container exec code3 javac main.java")
+		code=request.form["code"]
+		inpt=request.form["testcase"]
+		removedocker()
+		launchdocker()	
+		writeintofile("main.java",code)
+		writeintofile("input.txt",inpt)
+		permission("main.java")		
+		permission("input.txt")	
+		copyfiletodocker("main.java")
+		copyfiletodocker("input.txt")
+		os.system("docker container exec code3 javac main.java 2> compilerror.txt")
+		error=open("compilerror.txt","r")
+		err=error.read()
+		if err is not '':
+			f=open("compilerror.txt","r")
+			lines=f.readlines()
+			strng=""
+			for line in lines:
+				strng=strng+line+"\n"
+			return render_template('file1.html',message=strng,code=code,inpt=inpt)
 		os.system("docker exec code3 sh -c 'java main < input.txt' > output.txt")
-		#os.system("docker exec code3 cat main.java >> output.txt ")
-		#os.system("docker cp code1:abc.txt/ /mydockerproject/")
 		f=open("output.txt","r")
 		lines=f.readlines()
 		strng=""
 		for line in lines:
-			strng=strng+line+"<br>"
-		#os.system("docker exec code3 cal > abc.txt")
-		
-		#return out.stdout.decode()
-		return strng
+			strng=strng+line
+		return render_template('file1.html',message=strng,code=code,inpt=inpt)
 	elif option == "c":
-		code=request.form["ta"]
-		os.system("docker rm -f $(docker ps -aq)")
-		os.system("docker container run -dit --name code1 compileros:1")
-		out=open("/mydockerproject/main.c","w+")
-		os.system("chmod 777 /mydockerproject/main.c")
-		out.write(code)
-		out.close()
-		os.system("docker cp /mydockerproject/main.c code1:/")
-		os.system("docker container exec code1 gcc main.c -o main")
-		os.system("docker container exec code1 ./main > output.txt")
-		f=open("output.txt")
+		code=request.form["code"]
+		inpt=request.form["testcase"]
+		removedocker()
+		launchdocker()
+		writeintofile("main.c",code)
+		permission("main.c")
+		writeintofile("input.txt",inpt)
+		permission("input.txt")
+		copyfiletodocker("main.c")
+		copyfiletodocker("input.txt")
+		os.system("docker container exec code3 gcc main.c -o main")
+		error=open("compilerror.txt","r")
+		err=error.read()
+		if err is not '':
+			f=open("compilerror.txt","r")
+			lines=f.readlines()
+			strng=""
+			for line in lines:
+				strng=strng+line+"\n"
+			return render_template('file1.html',message=strng,code=code,inpt=inpt)
+		os.system("docker container exec code3 './main' > output.txt")
+		f=open("output.txt","r")
 		lines=f.readlines()
 		strng=""
 		for line in lines:
-			strng=strng+line+"<br>"
+			strng=strng+line+"\n"
+		return render_template('file1.html',message=strng,code=code,inpt=inpt)
 	else:
-		code=request.form["ta"]
-		os.system("docker rm -f $(docker ps -aq)")
-		os.system("docker container run -dit --name code1 compileros:1")
-		out=open("/mydockerproject/main.py","w+")
-		os.system("chmod 777 /mydockerproject/main.py")
-		out.write(code)
-		out.close()
-		os.system("docker cp /mydockerproject/main.py code1:/")
-		os.system("docker container exec code1 python main.py > output.txt")
-		f=open("output.txt")
+		code=request.form["code"]
+		inpt=request.form["testcase"]
+		removedocker()
+		launchdocker()
+		writeintofile("main.py",code)
+		permission("main.py")
+		writeintofile("input.txt",inpt)
+		permission("input.txt")
+		copyfiletodocker("main.py")
+		copyfiletodocker("input.txt")
+		os.system("docker exec code3 python main.py 2>compilerror.txt")
+		error=open("compilerror.txt","r")
+		err=error.read()
+		if err is not '':
+			f=open("compilerror.txt","r")
+			lines=f.readlines()
+			strng=""
+			for line in lines:
+				strng=strng+line+"\n"
+			return render_template('file1.html',message=strng,code=code,inpt=inpt)
+		os.system("docker exec code3 sh -c 'python main.py < input.txt' > output.txt")
+		f=open("output.txt","r")
 		lines=f.readlines()
 		strng=""
 		for line in lines:
-			strng=strng+line+"<br>"
+			strng=strng+line+"\n"
+		return render_template('file1.html',message=strng,code=code,inpt=inpt)
 
 if __name__=="__main__":
 	app.run(debug=True)
